@@ -1,1 +1,50 @@
-// место для вашего кода
+#include "stat_reader.h"
+
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <set>
+
+using namespace std;
+
+void ParseAndPrintStat(const transport_catalogue::TransportCatalogue& transport_catalogue, string_view request, ostream& output) {
+    if (request.substr(0, 4) == "Bus ") {
+        string_view bus_name = request.substr(4);
+        auto bus = transport_catalogue.FindBus(bus_name);
+        if (!bus) {
+            output << "Bus " << bus_name << ": not found" << endl;
+            return;
+        }
+
+        auto stat = transport_catalogue.GetStat(bus);
+
+        output << "Bus " << bus_name
+               << ": " << stat.total_stops << " stops on route, "
+               << stat.unique_stops << " unique stops, "
+               << fixed << setprecision(6) << stat.route_length << " route length" << endl;
+    } else if (request.substr(0, 5) == "Stop ") {
+        string_view stop_name = request.substr(5);
+        auto stop = transport_catalogue.FindStop(stop_name);
+        if (!stop) {
+            output << "Stop " << stop_name << ": not found" << endl;
+            return;
+        }
+
+        set<string> buses;
+        for (auto bus : transport_catalogue.GetBusesByStop(stop)) {
+            buses.insert(bus->name);
+        }
+
+        if (buses.empty()) {
+            output << "Stop " << stop_name <<": no buses" << endl;
+        } else {
+            output << "Stop " << stop_name << ": buses ";
+            for (const auto& bus_name : buses) {
+                output << bus_name << " ";
+            }
+            output << endl;
+        }
+    }
+}
+
+

@@ -8,10 +8,14 @@
 #include <vector>
 
 
-// Пространство имён имеет такое же название, как и класс, т.к. в последтсвии можно расширить программу до 
-// транспортного справочника для любого вида транспорта (подземного, наземного, воздушного и водного)
-
 namespace transport_catalogue {
+
+struct PairHasher {
+    template <typename First, typename Second>
+    size_t operator()(const std::pair<First, Second>& obj) const {
+        return std::hash<First>()(obj.first) + 37 * std::hash<Second>()(obj.second);
+    }
+};
 
 struct Stop {
     std::string name;
@@ -29,7 +33,8 @@ using BusPtr = const Bus*;
 struct BusStat {
     size_t total_stops = 0;
     size_t unique_stops = 0;
-    double route_length = 0.;
+    size_t route_length = 0.;
+    double geographic_distance  = 0.;
 };
 
 class TransportCatalogue {
@@ -42,13 +47,16 @@ public:
 	BusStat GetStat(BusPtr bus) const;
 	const std::unordered_set<BusPtr>& GetBusesByStop(StopPtr stop) const;
 
+    void SetDistance(StopPtr from, StopPtr to, int meters);
+    int GetDistance(StopPtr from, StopPtr to) const;
+
 private:
 	std::deque<Stop> stop_pool_;
 	std::deque<Bus> bus_pool_;
 	std::unordered_map<std::string_view, StopPtr> stop_by_name_;
 	std::unordered_map<std::string_view, BusPtr> bus_by_name_;
 	std::unordered_map<StopPtr, std::unordered_set<BusPtr>> bus_by_stop_;
-
+    std::unordered_map<std::pair<StopPtr, StopPtr>, int, PairHasher> distances_;
 };
 
 }

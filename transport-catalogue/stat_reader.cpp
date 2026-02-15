@@ -21,7 +21,10 @@ void ParseAndPrintStat(const transport_catalogue::TransportCatalogue& transport_
         output << "Bus " << bus_name
                << ": " << stat.total_stops << " stops on route, "
                << stat.unique_stops << " unique stops, "
-               << fixed << setprecision(6) << stat.route_length << " route length" << endl;
+               << fixed << setprecision(6) << stat.route_length << " route length, " 
+               << stat.route_length / stat.geographic_distance << " curvature" 
+               << endl;
+
     } else if (request.substr(0, 5) == "Stop ") {
         string_view stop_name = request.substr(5);
         auto stop = transport_catalogue.FindStop(stop_name);
@@ -46,5 +49,4 @@ void ParseAndPrintStat(const transport_catalogue::TransportCatalogue& transport_
         }
     }
 }
-
 

@@ -108,7 +108,17 @@ void InputReader::ApplyCommands(transport_catalogue::TransportCatalogue& catalog
 
     for (const auto& command : commands_) {
         if (command.command == "Stop") {
-            catalogue.AddStop(command.id, ParseCoordinates(command.description));
+            auto coord_end = command.description.find(',');
+            if (coord_end == std::string_view::npos) continue;
+            auto second_comma = command.description.find(',', coord_end + 1);
+            std::string coord_str;
+            if (second_comma == std::string_view::npos) {
+                coord_str = std::string(command.description);
+            } else {
+                coord_str = std::string(command.description.substr(0, second_comma));
+            }
+            auto coordinates = ParseCoordinates(coord_str);
+            catalogue.AddStop(command.id, coordinates);
         }
     }
 
@@ -116,23 +126,45 @@ void InputReader::ApplyCommands(transport_catalogue::TransportCatalogue& catalog
         if (command.command == "Bus") {
             std::vector<transport_catalogue::StopPtr> stops;
             auto stop_names = ParseRoute(command.description);
-
             for (auto stop_name : stop_names) {
                 stop_name = Trim(stop_name);
-
-                transport_catalogue::StopPtr stop = catalogue.FindStop(stop_name);
-
+                auto stop = catalogue.FindStop(stop_name);
                 if (stop) {
                     stops.push_back(stop);
-                } else {
-                    std::cerr << "Stop " << stop_name << " not found in the catalogue." << std::endl;
                 }
             }
-
             if (!stops.empty()) {
                 catalogue.AddBus(command.id, stops);
-            } else {
-                std::cerr << "No stops found for bus " << command.id << std::endl;
+            }
+        }
+    }
+
+
+    for (const auto& command : commands_) {
+        if (command.command == "Stop") {
+
+            auto parts = Split(command.description, ',');
+
+            for (size_t i = 2; i < parts.size(); ++i) {
+                std::string_view token = Trim(parts[i]);
+
+                size_t m_pos = token.find('m');
+                if (m_pos == std::string_view::npos) continue;
+
+                size_t to_pos = token.find(" to ", m_pos);
+                if (to_pos == std::string_view::npos) continue;
+
+                std::string dist_str(token.substr(0, m_pos));
+                std::string target_name(token.substr(to_pos + 4));
+                target_name = std::string(Trim(target_name));
+
+                int distance = std::stoi(dist_str);
+                auto from_stop = catalogue.FindStop(command.id);
+                auto to_stop = catalogue.FindStop(target_name);
+                if (from_stop && to_stop) {
+                    catalogue.SetDistance(from_stop, to_stop, distance);
+                }
+
             }
         }
     }

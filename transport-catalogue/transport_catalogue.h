@@ -10,12 +10,6 @@
 
 namespace transport_catalogue {
 
-struct PairHasher {
-    template <typename First, typename Second>
-    size_t operator()(const std::pair<First, Second>& obj) const {
-        return std::hash<First>()(obj.first) + 37 * std::hash<Second>()(obj.second);
-    }
-};
 
 struct Stop {
     std::string name;
@@ -29,7 +23,6 @@ struct Bus {
 };
 using BusPtr = const Bus*;
 
-
 struct BusStat {
     size_t total_stops = 0;
     size_t unique_stops = 0;
@@ -37,13 +30,16 @@ struct BusStat {
     double geographic_distance  = 0.;
 };
 
+
 class TransportCatalogue {
 public:
 
-	void AddStop(std::string name, geo::Coordinates pos);
-	void AddBus(std::string name, std::vector<StopPtr> stops);
+	void AddStop(const std::string& name, geo::Coordinates pos);
+	void AddBus(const std::string& name, const std::vector<StopPtr>& stops);
+    
 	StopPtr FindStop(std::string_view bus_name) const;
 	BusPtr FindBus(std::string_view bus_name) const;
+
 	BusStat GetStat(BusPtr bus) const;
 	const std::unordered_set<BusPtr>& GetBusesByStop(StopPtr stop) const;
 
@@ -51,6 +47,14 @@ public:
     int GetDistance(StopPtr from, StopPtr to) const;
 
 private:
+
+    struct PairHasher {
+        template <typename First, typename Second>
+        size_t operator()(const std::pair<First, Second>& obj) const {
+            return std::hash<First>()(obj.first) + 37 * std::hash<Second>()(obj.second);
+        }
+    };
+
 	std::deque<Stop> stop_pool_;
 	std::deque<Bus> bus_pool_;
 	std::unordered_map<std::string_view, StopPtr> stop_by_name_;

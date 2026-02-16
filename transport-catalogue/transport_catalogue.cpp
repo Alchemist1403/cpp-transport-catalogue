@@ -9,13 +9,13 @@ using std::string_view;
 namespace transport_catalogue {
 
 // Методы добавления
-void TransportCatalogue::AddStop(string name, geo::Coordinates pos) {
+void TransportCatalogue::AddStop(const string& name, geo::Coordinates pos) {
     stop_pool_.push_back({std::move(name), pos});
     auto added_ptr = &stop_pool_.back();
     stop_by_name_[added_ptr->name] = added_ptr;
 }
 
-void TransportCatalogue::AddBus(string name, std::vector<StopPtr> stops) {
+void TransportCatalogue::AddBus(const string& name, const std::vector<StopPtr>& stops) {
     bus_pool_.push_back({std::move(name), std::move(stops)});
     auto added_bus = &bus_pool_.back();
     bus_by_name_[added_bus->name] = added_bus;
@@ -79,7 +79,9 @@ BusStat TransportCatalogue::GetStat(transport_catalogue::BusPtr bus) const {
 }
 
 void TransportCatalogue::SetDistance(StopPtr from, StopPtr to, int meters) {
-    distances_[{from, to}] = meters;
+    if (FindStop(from->name) != nullptr && FindStop(to->name) != nullptr) {
+        distances_[{from, to}] = meters;
+    }
 }
 
 int TransportCatalogue::GetDistance(StopPtr from, StopPtr to) const {

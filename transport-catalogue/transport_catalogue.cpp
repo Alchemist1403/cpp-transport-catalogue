@@ -1,106 +1,100 @@
 #include "transport_catalogue.h"
-#include <unordered_set>
-#include <optional>
-#include <iostream>
-
-using std::string;
-using std::string_view;
+#include "geo.h"
 
 namespace transport_catalogue {
 
-// Методы добавления
-void TransportCatalogue::AddStop(const string& name, geo::Coordinates pos) {
+void TransportCatalogue::AddStop(const std::string& name, geo::Coordinates pos) {
     stop_pool_.push_back({std::move(name), pos});
     auto added_ptr = &stop_pool_.back();
     stop_by_name_[added_ptr->name] = added_ptr;
 }
 
-void TransportCatalogue::AddBus(const string& name, const std::vector<StopPtr>& stops) {
-    bus_pool_.push_back({std::move(name), std::move(stops)});
+void TransportCatalogue::AddBus(const std::string& name, const std::vector<StopPtr>& stops, bool is_roundtrip) {
+    bus_pool_.push_back({std::move(name), std::move(stops), is_roundtrip});
     auto added_bus = &bus_pool_.back();
     bus_by_name_[added_bus->name] = added_bus;
-
     for (auto stop : added_bus->stops) {
         bus_by_stop_[stop].insert(added_bus);
     }
 }
 
-// Методы поиска
-StopPtr TransportCatalogue::FindStop(string_view bus_name) const {
-    auto iter = stop_by_name_.find(bus_name);
+StopPtr TransportCatalogue::FindStop(std::string_view name) const {
+    auto iter = stop_by_name_.find(name);
     if (iter == stop_by_name_.end()) {
-            return nullptr;
+        return nullptr;
     }
     return iter->second;
 }
 
-BusPtr transport_catalogue::TransportCatalogue::FindBus(string_view bus_name) const {
-    auto iter = bus_by_name_.find(bus_name);
+BusPtr TransportCatalogue::FindBus(std::string_view name) const {
+    auto iter = bus_by_name_.find(name);
     if (iter == bus_by_name_.end()) {
         return nullptr;
     }
     return iter->second;
 }
 
-// Методы получения информации
-const std::unordered_set<transport_catalogue::BusPtr>& TransportCatalogue::GetBusesByStop(StopPtr stop) const {
+const std::unordered_set<BusPtr>& TransportCatalogue::GetBusesByStop(StopPtr stop) const {
     static const std::unordered_set<BusPtr> dummy;
     auto iter = bus_by_stop_.find(stop);
     return iter == bus_by_stop_.end() ? dummy : iter->second;
 }
 
-BusStat TransportCatalogue::GetStat(transport_catalogue::BusPtr bus) const {
+BusStat TransportCatalogue::GetStat(BusPtr bus) const {
     BusStat stat;
-
-    std::unordered_set<string_view> seen_stops;
-    StopPtr prev_stop = nullptr;
-
-    for (auto stop: bus->stops) {
+    std::unordered_set<std::string_view> seen_stops;
+    
+    // Прямой путь: от первой до последней остановки
+    for (size_t i = 0; i < bus->stops.size(); ++i) {
+        auto stop = bus->stops[i];
         ++stat.total_stops;
-
         if (seen_stops.count(stop->name) == 0) {
             ++stat.unique_stops;
             seen_stops.insert(stop->name);
         }
-
-        if (prev_stop) {
-
-            int road_distance = GetDistance(prev_stop, stop);
-            stat.route_length += road_distance;
-
-            double geo_distance = geo::ComputeDistance(prev_stop->position, stop->position);
-            stat.geographic_distance += geo_distance;
-
+        if (i > 0) {
+            auto prev = bus->stops[i-1];
+            stat.route_length += GetDistance(prev, stop);
+            stat.geographic_distance += geo::ComputeDistance(prev->position, stop->position);
         }
-        prev_stop = stop;
     }
-
+    
+    // Обратный путь для НЕкольцевых маршрутов
+    if (!bus->is_roundtrip && bus->stops.size() > 1) {
+        for (size_t i = bus->stops.size() - 1; i > 0; --i) {
+            auto from = bus->stops[i];
+            auto to = bus->stops[i-1];
+            stat.route_length += GetDistance(from, to);  // Важно: from→to, а не to→from!
+            stat.geographic_distance += geo::ComputeDistance(from->position, to->position);
+            ++stat.total_stops;  // Добавляем остановку обратного пути
+        }
+    }
+    
     return stat;
 }
 
+// SetDistance — сохраняем только в ЗАДАННОМ направлении
 void TransportCatalogue::SetDistance(StopPtr from, StopPtr to, int meters) {
-    if (FindStop(from->name) != nullptr && FindStop(to->name) != nullptr) {
-        distances_[{from, to}] = meters;
+    if (from && to) {
+        distances_[{from, to}] = meters;  // Только одно направление!
     }
 }
 
+// GetDistance — ищем сначала в запрошенном направлении, потом в обратном как fallback
 int TransportCatalogue::GetDistance(StopPtr from, StopPtr to) const {
     if (from == to) {
-        auto it = distances_.find({from, to});
-        return (it != distances_.end()) ? it->second : 0;
+        return 0;
     }
-
     auto it = distances_.find({from, to});
     if (it != distances_.end()) {
         return it->second;
     }
-
+    // Fallback: если не найдено в прямом, ищем в обратном (для симметричных дорог)
     auto rev_it = distances_.find({to, from});
     if (rev_it != distances_.end()) {
         return rev_it->second;
     }
-
     return 0;
 }
 
-}
+}  // namespace transport_catalogue

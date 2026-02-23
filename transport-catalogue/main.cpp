@@ -1,32 +1,19 @@
-#include <iostream>
-#include <string>
+#include "request_handler.h"
+#include "json_reader.h"
+#include "map_renderer.h"
 
-#include "input_reader.h"
-#include "stat_reader.h"
-
-using namespace std;
+using namespace std::literals;
 
 int main() {
+    json::Document doc = json::Load(std::cin);
+    
     transport_catalogue::TransportCatalogue catalogue;
-
-    int base_request_count;
-    cin >> base_request_count >> ws;
-
-    {
-        comands_io::InputReader reader;
-        for (int i = 0; i < base_request_count; ++i) {
-            string line;
-            getline(cin, line);
-            reader.ParseLine(line);
-        }
-        reader.ApplyCommands(catalogue);
-    }
-
-    int stat_request_count;
-    cin >> stat_request_count >> ws;
-    for (int i = 0; i < stat_request_count; ++i) {
-        string line;
-        getline(cin, line);
-        ParseAndPrintStat(catalogue, line, cout);
-    }
+    json_reader::LoadBaseRequests(doc, catalogue);
+    
+    RequestHandler request_handler(catalogue);
+    auto result = json_reader::ProcessStatRequests(doc, request_handler);
+    
+    json::Print(result, std::cout);
+    
+    return 0;
 }

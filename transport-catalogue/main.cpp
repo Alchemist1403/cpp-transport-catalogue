@@ -9,7 +9,7 @@ int main() {
     
     transport_catalogue::TransportCatalogue catalogue;
     json_reader::LoadBaseRequests(doc, catalogue);
-    
+
     RequestHandler request_handler(catalogue);
     auto result = json_reader::ProcessStatRequests(doc, request_handler);
     

@@ -81,12 +81,14 @@ void LoadBaseRequests(const json::Document& doc, transport_catalogue::TransportC
             SetRoadDistances(dict, catalogue);
         }
     }
+
     for (const auto& node : base_requests) {
         const auto& dict = node.AsMap();
         if (dict.at("type").AsString() == "Bus") {
             LoadBus(dict, catalogue);
         }
     }
+    catalogue.Sorting();
 }
 
 json::Node ProcessBusRequest(const json::Dict& request, const RequestHandler& handler) {
@@ -131,7 +133,6 @@ json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& h
         return json::Node(std::move(response));
     }
     
-
     std::vector<std::string> bus_names;
     for (const auto* bus : *buses_ptr) {
         bus_names.push_back(bus->name);
@@ -166,12 +167,8 @@ json::Document ProcessStatRequests(const json::Document& doc, const RequestHandl
             responses.emplace_back(ProcessStopRequest(request, handler));
         } else if (type == "Map") {
             int request_id = request.at("id").AsInt();
-            
-            auto [bus_names, stop_names] = ExtractRouteNames(doc);
-            auto [buses, stops] = handler.GetAllBusesAndStops(bus_names, stop_names);
-            
-            std::sort(buses.begin(), buses.end(),
-                [](auto a, auto b) { return a->name < b->name; });
+
+            auto [buses, stops] = handler.GetAllBusesAndStops();
             
             auto render_settings = LoadRenderSettings(doc);
             render::MapRenderer renderer(render_settings);
@@ -268,30 +265,6 @@ render::RenderSettings LoadRenderSettings(const json::Document& doc) {
     }
 
     return settings;
-}
-
-std::pair<std::vector<std::string>, std::vector<std::string>> ExtractRouteNames(const json::Document& doc) {
-    std::vector<std::string> bus_names, stop_names;
-    const auto& root = doc.GetRoot().AsMap();
-    auto it = root.find("base_requests");
-
-    if (it == root.end() || !it->second.IsArray()) {
-        return {bus_names, stop_names};
-    }
-    
-    for (const auto& req : it->second.AsArray()) {
-        const auto& m = req.AsMap();
-        const std::string& type = m.at("type").AsString();
-        const std::string& name = m.at("name").AsString();
-    
-        if (type == "Bus") {
-            bus_names.push_back(name);
-        } else if (type == "Stop") {
-            stop_names.push_back(name);
-        }
-    }
-
-    return {bus_names, stop_names};
 }
 
 }  // namespace json_reader

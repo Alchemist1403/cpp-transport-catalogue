@@ -44,7 +44,6 @@ BusStat TransportCatalogue::GetStat(BusPtr bus) const {
     BusStat stat;
     std::unordered_set<std::string_view> seen_stops;
     
-    // Прямой путь: от первой до последней остановки
     for (size_t i = 0; i < bus->stops.size(); ++i) {
         auto stop = bus->stops[i];
         ++stat.total_stops;
@@ -59,42 +58,57 @@ BusStat TransportCatalogue::GetStat(BusPtr bus) const {
         }
     }
     
-    // Обратный путь для НЕкольцевых маршрутов
     if (!bus->is_roundtrip && bus->stops.size() > 1) {
         for (size_t i = bus->stops.size() - 1; i > 0; --i) {
             auto from = bus->stops[i];
             auto to = bus->stops[i-1];
-            stat.route_length += GetDistance(from, to);  // Важно: from→to, а не to→from!
+            stat.route_length += GetDistance(from, to);
             stat.geographic_distance += geo::ComputeDistance(from->position, to->position);
-            ++stat.total_stops;  // Добавляем остановку обратного пути
+            ++stat.total_stops;
         }
     }
     
     return stat;
 }
 
-// SetDistance — сохраняем только в ЗАДАННОМ направлении
 void TransportCatalogue::SetDistance(StopPtr from, StopPtr to, int meters) {
     if (from && to) {
-        distances_[{from, to}] = meters;  // Только одно направление!
+        distances_[{from, to}] = meters;
     }
 }
 
-// GetDistance — ищем сначала в запрошенном направлении, потом в обратном как fallback
 int TransportCatalogue::GetDistance(StopPtr from, StopPtr to) const {
     if (from == to) {
         return 0;
     }
+
     auto it = distances_.find({from, to});
     if (it != distances_.end()) {
         return it->second;
     }
-    // Fallback: если не найдено в прямом, ищем в обратном (для симметричных дорог)
+
     auto rev_it = distances_.find({to, from});
     if (rev_it != distances_.end()) {
         return rev_it->second;
     }
     return 0;
+}
+
+// Добавил новый метод для сортировки по алфавиту всех остановок и автобусов
+void TransportCatalogue::Sorting() {
+    buses_sorted_.reserve(bus_pool_.size());
+    for (const auto& bus : bus_pool_) {
+        buses_sorted_.push_back(&bus);
+    }
+    std::sort(buses_sorted_.begin(), buses_sorted_.end(),
+        [](const Bus* a, const Bus* b) { return a->name < b->name; });
+    
+    stops_sorted_.reserve(stop_pool_.size());
+    for (const auto& stop : stop_pool_) {
+        stops_sorted_.push_back(&stop);
+    }
+    std::sort(stops_sorted_.begin(), stops_sorted_.end(),
+        [](const Stop* a, const Stop* b) { return a->name < b->name; });
 }
 
 }  // namespace transport_catalogue

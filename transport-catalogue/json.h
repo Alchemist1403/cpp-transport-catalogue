@@ -17,9 +17,11 @@ public:
     using runtime_error::runtime_error;
 };
 
-class Node final: private std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string> {
+using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>; 
+
+class Node final: private Value {
 public:
-    using variant::variant;
+    using Value::variant;
 
     bool IsInt() const {
         return std::holds_alternative<int>(*this);
@@ -126,7 +128,7 @@ public:
     }
 
 
-    const std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>& GetValue() const {
+    const Value& GetValue() const {
         return *this;
     }
 

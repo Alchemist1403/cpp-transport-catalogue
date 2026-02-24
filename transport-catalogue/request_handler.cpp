@@ -22,28 +22,7 @@ const std::unordered_set<transport_catalogue::BusPtr>* RequestHandler::GetBusesB
     return &db_.GetBusesByStop(stop);
 }
 
-std::pair<std::vector<transport_catalogue::BusPtr>, std::vector<transport_catalogue::StopPtr>> RequestHandler::GetAllBusesAndStops(
-        const std::vector<std::string>& bus_names,
-        const std::vector<std::string>& stop_names
-    ) const {
-    
-    std::vector<transport_catalogue::BusPtr> buses;
-    buses.reserve(bus_names.size());
-    for (const auto& name : bus_names) {
-        auto bus = db_.FindBus(name);
-        if (bus) {
-            buses.push_back(bus);
-        }
-    }
-    
-    std::vector<transport_catalogue::StopPtr> stops;
-    stops.reserve(stop_names.size());
-    for (const auto& name : stop_names) {
-        auto stop = db_.FindStop(name);
-        if (stop) {
-            stops.push_back(stop);
-        }
-    }
-    
-    return {buses, stops};
+std::pair<const std::vector<transport_catalogue::BusPtr>&, const std::vector<transport_catalogue::StopPtr>&>  RequestHandler::GetAllBusesAndStops() const {
+    return {db_.GetAllBusesSorted(), db_.GetAllStopsSorted()};
 }
+

@@ -11,7 +11,8 @@ svg::Color MapRenderer::GetColor(size_t idx) const {
     return settings_.color_palette[idx % settings_.color_palette.size()];
 }
 
-void MapRenderer::RenderMap(std::ostream& out, const std::vector<transport_catalogue::BusPtr>& buses, [[maybe_unused]] const std::vector<transport_catalogue::StopPtr>& stops) const {
+void MapRenderer::RenderMap(std::ostream& out, const std::vector<transport_catalogue::BusPtr>& buses, [[maybe_unused]]  const std::vector<transport_catalogue::StopPtr>& stops) const {
+
     std::vector<geo::Coordinates> coords;
     for (const auto& bus : buses)
         for (const auto& stop : bus->stops) {

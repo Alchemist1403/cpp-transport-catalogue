@@ -26,17 +26,32 @@ class SphereProjector {
 public:
     template <typename It>
     SphereProjector(It begin, It end, double w, double h, double pad) : padding_(pad) {
-        if (begin == end) return;
-        auto [l, r] = std::minmax_element(begin, end, [](auto a, auto b){ return a.lng < b.lng; });
+        if (begin == end) {
+            return;
+        }
+        
+        auto [l, r] = std::minmax_element(begin, end, [](auto a, auto b){return a.lng < b.lng; });
         min_lon_ = l->lng; double max_lon = r->lng;
+
         auto [b, t] = std::minmax_element(begin, end, [](auto a, auto b){ return a.lat < b.lat; });
         double min_lat = b->lat; max_lat_ = t->lat;
+
         std::optional<double> wz, hz;
-        if (!IsZero(max_lon - min_lon_)) wz = (w - 2*pad) / (max_lon - min_lon_);
-        if (!IsZero(max_lat_ - min_lat)) hz = (h - 2*pad) / (max_lat_ - min_lat);
-        if (wz && hz) zoom_ = std::min(*wz, *hz);
-        else if (wz) zoom_ = *wz;
-        else if (hz) zoom_ = *hz;
+        if (!IsZero(max_lon - min_lon_)) {
+            wz = (w - 2*pad) / (max_lon - min_lon_);
+        }
+
+        if (!IsZero(max_lat_ - min_lat)) {
+            hz = (h - 2*pad) / (max_lat_ - min_lat);
+        }
+
+        if (wz && hz) {
+            zoom_ = std::min(*wz, *hz);
+        } else if (wz) {
+            zoom_ = *wz;
+        } else if (hz) {
+            zoom_ = *hz;
+        }
     }
     svg::Point operator()(geo::Coordinates c) const {
         return {(c.lng - min_lon_) * zoom_ + padding_, (max_lat_ - c.lat) * zoom_ + padding_};

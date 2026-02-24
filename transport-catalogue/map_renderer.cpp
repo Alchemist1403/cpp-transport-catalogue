@@ -14,12 +14,11 @@ svg::Color MapRenderer::GetColor(size_t idx) const {
 void MapRenderer::RenderMap(std::ostream& out, const std::vector<transport_catalogue::BusPtr>& buses, [[maybe_unused]] const std::vector<transport_catalogue::StopPtr>& stops) const {
     std::vector<geo::Coordinates> coords;
     for (const auto& bus : buses)
-        for (const auto& stop : bus->stops)
+        for (const auto& stop : bus->stops) {
             coords.push_back(stop->position);
+        }
     
-    SphereProjector proj(coords.begin(), coords.end(),
-                         settings_.width, settings_.height, settings_.padding);
-    
+    SphereProjector proj(coords.begin(), coords.end(), settings_.width, settings_.height, settings_.padding);
     svg::Document doc;
     
     for (size_t i = 0; i < buses.size(); ++i) {
@@ -28,7 +27,9 @@ void MapRenderer::RenderMap(std::ostream& out, const std::vector<transport_catal
 
     for (size_t i = 0; i < buses.size(); ++i) {
         const auto* bus = buses[i];
-        if (bus->stops.empty()) continue;
+        if (bus->stops.empty()) {
+            continue;
+        }
         
         const auto* first_stop = bus->stops.front();
         const auto* last_stop = bus->stops.back();
@@ -66,7 +67,10 @@ void MapRenderer::RenderMap(std::ostream& out, const std::vector<transport_catal
 }
 
 void MapRenderer::RenderBusRoute(svg::Document& doc, const transport_catalogue::Bus* bus, const SphereProjector& proj, size_t idx) const {
-    if (bus->stops.empty()) return;
+    if (bus->stops.empty()) {
+        return;
+    }
+    
     svg::Polyline pl;
     pl.SetStrokeColor(GetColor(idx))
       .SetFillColor(svg::NoneColor)

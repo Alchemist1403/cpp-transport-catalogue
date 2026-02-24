@@ -16,19 +16,16 @@ std::optional<transport_catalogue::BusStat> RequestHandler::GetBusStat(std::stri
 
 const std::unordered_set<transport_catalogue::BusPtr>* RequestHandler::GetBusesByStop(std::string_view stop_name) const {
     auto stop = db_.FindStop(stop_name);
-
     if (!stop) {
         return nullptr;
     }
-
     return &db_.GetBusesByStop(stop);
 }
 
-std::pair<std::vector<transport_catalogue::BusPtr>, 
-          std::vector<transport_catalogue::StopPtr>> 
-RequestHandler::GetAllRoutesForRendering(
-    const std::vector<std::string>& bus_names,
-    const std::vector<std::string>& stop_names) const {
+std::pair<std::vector<transport_catalogue::BusPtr>, std::vector<transport_catalogue::StopPtr>> RequestHandler::GetAllBusesAndStops(
+        const std::vector<std::string>& bus_names,
+        const std::vector<std::string>& stop_names
+    ) const {
     
     std::vector<transport_catalogue::BusPtr> buses;
     buses.reserve(bus_names.size());

@@ -22,7 +22,3 @@ const std::unordered_set<transport_catalogue::BusPtr>* RequestHandler::GetBusesB
     return &db_.GetBusesByStop(stop);
 }
 
-std::pair<const std::vector<transport_catalogue::BusPtr>&, const std::vector<transport_catalogue::StopPtr>&>  RequestHandler::GetAllBusesAndStops() const {
-    return {db_.GetAllBusesSorted(), db_.GetAllStopsSorted()};
-}
-

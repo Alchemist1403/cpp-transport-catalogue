@@ -9,7 +9,8 @@ public:
 
     std::optional<transport_catalogue::BusStat> GetBusStat(std::string_view bus_name) const;
     const std::unordered_set<transport_catalogue::BusPtr>* GetBusesByStop(std::string_view stop_name) const;
-    std::pair<const std::vector<transport_catalogue::BusPtr>&, const std::vector<transport_catalogue::StopPtr>&> GetAllBusesAndStops() const;
+    const std::vector<transport_catalogue::BusPtr>& GetAllBusesSorted() const { return db_.GetAllBusesSorted(); } 
+    const std::vector<transport_catalogue::StopPtr>& GetAllStopsSorted() const { return db_.GetAllStopsSorted(); } 
 
 private:
     const transport_catalogue::TransportCatalogue& db_;

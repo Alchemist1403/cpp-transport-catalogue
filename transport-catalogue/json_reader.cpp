@@ -1,12 +1,13 @@
 #include "json_reader.h"
+#include "json_builder.h"
 #include <sstream>
+#include <algorithm>
 
 using namespace std::literals;
 
 namespace json_reader {
 
 svg::Color ParseColorFromArray(const json::Array& arr) {
-
     if (arr.size() < 3) {
         return svg::Rgb{0, 0, 0};
     }
@@ -38,11 +39,10 @@ void SetRoadDistances(const json::Dict& stop_dict, transport_catalogue::Transpor
         return;
     }
 
-    const auto& road_distances = stop_dict.at("road_distances").AsMap();
+    const auto& road_distances = stop_dict.at("road_distances").AsDict();
 
     for (const auto& [dest_name, distance_node] : road_distances) {
         auto dest_ptr = catalogue.FindStop(dest_name);
-
         if (dest_ptr) {
             catalogue.SetDistance(stop_ptr, dest_ptr, distance_node.AsInt());
         }
@@ -65,25 +65,25 @@ void LoadBus(const json::Dict& bus_dict, transport_catalogue::TransportCatalogue
 }
 
 void LoadBaseRequests(const json::Document& doc, transport_catalogue::TransportCatalogue& catalogue) {
-    const auto& root = doc.GetRoot().AsMap();
+    const auto& root = doc.GetRoot().AsDict();
     const auto& base_requests = root.at("base_requests").AsArray();
     
     for (const auto& node : base_requests) {
-        const auto& dict = node.AsMap();
+        const auto& dict = node.AsDict();
         if (dict.at("type").AsString() == "Stop") {
             LoadStop(dict, catalogue);
         }
     }
 
     for (const auto& node : base_requests) {
-        const auto& dict = node.AsMap();
+        const auto& dict = node.AsDict();
         if (dict.at("type").AsString() == "Stop") {
             SetRoadDistances(dict, catalogue);
         }
     }
 
     for (const auto& node : base_requests) {
-        const auto& dict = node.AsMap();
+        const auto& dict = node.AsDict();
         if (dict.at("type").AsString() == "Bus") {
             LoadBus(dict, catalogue);
         }
@@ -92,45 +92,50 @@ void LoadBaseRequests(const json::Document& doc, transport_catalogue::TransportC
 }
 
 json::Node ProcessBusRequest(const json::Dict& request, const RequestHandler& handler) {
-    json::Dict response;
     int request_id = request.at("id").AsInt();
-    
     const std::string& bus_name = request.at("name").AsString();
+    
     auto stat_opt = handler.GetBusStat(bus_name);
     
-    if (!stat_opt) { 
-        response["error_message"] = "not found"s;
-        response["request_id"] = request_id;
-        return json::Node(std::move(response));
+    if (!stat_opt) {
+        return json::Builder{}
+            .StartDict()
+                .Key("error_message").Value("not found"s)
+                .Key("request_id").Value(request_id)
+            .EndDict()
+            .Build();
     }
     
     const auto& stat = *stat_opt;
-    response["stop_count"] = static_cast<int>(stat.total_stops);
-    response["unique_stop_count"] = static_cast<int>(stat.unique_stops);
-    response["route_length"] = static_cast<int>(stat.route_length);
-    
     double curvature = 0.0;
     if (stat.geographic_distance > 0) {
         curvature = static_cast<double>(stat.route_length) / stat.geographic_distance;
     }
 
-    response["curvature"] = curvature;
-    response["request_id"] = request_id;
-    
-    return json::Node(std::move(response));
+    return json::Builder{}
+        .StartDict()
+            .Key("stop_count").Value(static_cast<int>(stat.total_stops))
+            .Key("unique_stop_count").Value(static_cast<int>(stat.unique_stops))
+            .Key("route_length").Value(static_cast<int>(stat.route_length))
+            .Key("curvature").Value(curvature)
+            .Key("request_id").Value(request_id)
+        .EndDict()
+        .Build();
 }
 
 json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& handler) {
-    json::Dict response;
     int request_id = request.at("id").AsInt();
-    
     const std::string& stop_name = request.at("name").AsString();
+    
     auto buses_ptr = handler.GetBusesByStop(stop_name);
     
     if (buses_ptr == nullptr) {
-        response["error_message"] = "not found"s;
-        response["request_id"] = request_id;
-        return json::Node(std::move(response));
+        return json::Builder{}
+            .StartDict()
+                .Key("error_message").Value("not found"s)
+                .Key("request_id").Value(request_id)
+            .EndDict()
+            .Build();
     }
     
     std::vector<std::string> bus_names;
@@ -139,65 +144,70 @@ json::Node ProcessStopRequest(const json::Dict& request, const RequestHandler& h
     }
     std::sort(bus_names.begin(), bus_names.end());
 
-    json::Array buses_array;
+    json::Builder array_builder;
+    array_builder.StartArray();
     for (const auto& name : bus_names) {
-        buses_array.emplace_back(name);
+        array_builder.Value(name);
     }
-    
-    response["buses"] = json::Node(std::move(buses_array));
-    response["request_id"] = request_id;
-    
-    return json::Node(std::move(response));
+    json::Node buses_array = array_builder.EndArray().Build();
+
+    return json::Builder{}
+        .StartDict()
+            .Key("buses").Value(buses_array.GetValue())
+            .Key("request_id").Value(request_id)
+        .EndDict()
+        .Build();
 }
 
 json::Document ProcessStatRequests(const json::Document& doc, const RequestHandler& handler) {
-    const auto& root = doc.GetRoot().AsMap();
+    const auto& root = doc.GetRoot().AsDict();
     const auto& stat_requests = root.at("stat_requests").AsArray();
     
-    json::Array responses;
-    responses.reserve(stat_requests.size());
+
+    json::Builder responses_builder;
+    responses_builder.StartArray();
     
     for (const auto& request_node : stat_requests) {
-        const auto& request = request_node.AsMap();
+        const auto& request = request_node.AsDict();
         const std::string& type = request.at("type").AsString();
         
         if (type == "Bus") {
-            responses.emplace_back(ProcessBusRequest(request, handler));
+            responses_builder.Value(ProcessBusRequest(request, handler).GetValue());
         } else if (type == "Stop") {
-            responses.emplace_back(ProcessStopRequest(request, handler));
+            responses_builder.Value(ProcessStopRequest(request, handler).GetValue());
         } else if (type == "Map") {
             int request_id = request.at("id").AsInt();
-
-            auto [buses, stops] = handler.GetAllBusesAndStops();
-            
             auto render_settings = LoadRenderSettings(doc);
             render::MapRenderer renderer(render_settings);
             
             std::ostringstream oss;
-            renderer.RenderMap(oss, buses, stops);
+            renderer.RenderMap(oss, handler.GetAllBusesSorted(), handler.GetAllStopsSorted());
             std::string svg_string = oss.str();
             
-            json::Dict response;
-            response["request_id"] = request_id;
-            response["map"] = svg_string;
+            json::Node map_response = json::Builder{}
+                .StartDict()
+                    .Key("request_id").Value(request_id)
+                    .Key("map").Value(svg_string)
+                .EndDict()
+                .Build();
             
-            responses.emplace_back(std::move(response));
+            responses_builder.Value(map_response.GetValue());
         }
     }
     
-    return json::Document(json::Node(std::move(responses)));
+    return json::Document(responses_builder.EndArray().Build());
 }
 
 render::RenderSettings LoadRenderSettings(const json::Document& doc) {
     render::RenderSettings settings;
-    const auto& root = doc.GetRoot().AsMap();
+    const auto& root = doc.GetRoot().AsDict();
     auto it = root.find("render_settings");
 
-    if (it == root.end() || !it->second.IsMap()) {
+    if (it == root.end() || !it->second.IsDict()) {
         return settings;
     }
     
-    const auto& rs = it->second.AsMap();
+    const auto& rs = it->second.AsDict();
     
     if (auto w = rs.find("width"); w != rs.end() && w->second.IsDouble()) {
         settings.width = w->second.AsDouble();

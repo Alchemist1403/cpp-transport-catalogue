@@ -17,11 +17,13 @@ public:
     using runtime_error::runtime_error;
 };
 
-using Value = std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string>; 
-
-class Node final: private Value {
+class Node final
+    : private std::variant<std::nullptr_t, Array, Dict, bool, int, double, std::string> {
 public:
-    using Value::variant;
+    using variant::variant;
+    using Value = variant;
+
+    Node(const Value& value) : variant(value) {}
 
     bool IsInt() const {
         return std::holds_alternative<int>(*this);
@@ -37,11 +39,9 @@ public:
     bool IsPureDouble() const {
         return std::holds_alternative<double>(*this);
     }
-
     bool IsDouble() const {
         return IsInt() || IsPureDouble();
     }
-
     double AsDouble() const {
         using namespace std::literals;
         if (!IsDouble()) {
@@ -69,7 +69,6 @@ public:
     bool IsArray() const {
         return std::holds_alternative<Array>(*this);
     }
-
     const Array& AsArray() const {
         using namespace std::literals;
         if (!IsArray()) {
@@ -91,47 +90,25 @@ public:
         return std::get<std::string>(*this);
     }
 
-    bool IsMap() const {
+    bool IsDict() const {
         return std::holds_alternative<Dict>(*this);
     }
-
-    const Dict& AsMap() const {
+    const Dict& AsDict() const {
         using namespace std::literals;
-        if (!IsMap()) {
-            throw std::logic_error("Not a map"s);
+        if (!IsDict()) {
+            throw std::logic_error("Not a dict"s);
         }
 
         return std::get<Dict>(*this);
     }
 
     bool operator==(const Node& rhs) const {
-        if (this->IsInt() && rhs.IsInt()) {
-            return this->AsInt() == rhs.AsInt();
-        } else if (this->IsPureDouble() && rhs.IsPureDouble()) {
-            return this->AsDouble() == rhs.AsDouble();
-        } else if (this->IsBool() && rhs.IsBool()) {
-            return this->AsBool() == rhs.AsBool();
-        } else if (this->IsNull() && rhs.IsNull()) {
-            return true;
-        } else if (this->IsArray() && rhs.IsArray()) {
-            const auto& lhsArray = this->AsArray();
-            const auto& rhsArray = rhs.AsArray();
-            return lhsArray == rhsArray;
-        } else if (this->IsString() && rhs.IsString()) {
-            return this->AsString() == rhs.AsString();
-        } else if (this->IsMap() && rhs.IsMap()) {
-            const auto& lhsMap = this->AsMap();
-            const auto& rhsMap = rhs.AsMap();
-            return lhsMap == rhsMap;
-        }
-        return false;
+        return GetValue() == rhs.GetValue();
     }
-
 
     const Value& GetValue() const {
         return *this;
     }
-
 };
 
 inline bool operator!=(const Node& lhs, const Node& rhs) {

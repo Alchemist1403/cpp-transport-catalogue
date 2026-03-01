@@ -50,8 +50,8 @@ public:
     const std::deque<Stop>& GetAllStops() const { return stop_pool_; }
 
     void Sorting();
-    const std::vector<const Bus*>& GetAllBusesSorted() const { return buses_sorted_; }
-    const std::vector<const Stop*>& GetAllStopsSorted() const { return stops_sorted_; }
+    const std::vector<BusPtr>& GetAllBusesSorted() const { return buses_sorted_; }
+    const std::vector<StopPtr>& GetAllStopsSorted() const { return stops_sorted_; }
 
 private:
     struct PairHasher {
@@ -65,8 +65,8 @@ private:
     std::deque<Bus> bus_pool_;
     
     // Отсортированные векторы. Сортировка производится методом Sorting один раз после заполнения БД
-    std::vector<const Bus*> buses_sorted_;
-    std::vector<const Stop*> stops_sorted_;
+    std::vector<BusPtr> buses_sorted_;
+    std::vector<StopPtr> stops_sorted_;
 
     std::unordered_map<std::string_view, StopPtr> stop_by_name_;
     std::unordered_map<std::string_view, BusPtr> bus_by_name_;

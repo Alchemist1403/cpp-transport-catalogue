@@ -22,3 +22,32 @@ const std::unordered_set<transport_catalogue::BusPtr>* RequestHandler::GetBusesB
     return &db_.GetBusesByStop(stop);
 }
 
+std::vector<transport_catalogue::BusPtr> RequestHandler::GetAllBusesSorted() const {
+
+    std::vector<transport_catalogue::BusPtr> buses_sorted;
+    buses_sorted.reserve(db_.GetAllBuses().size());
+
+    for (const auto& bus : db_.GetAllBuses()) {
+        buses_sorted.push_back(&bus);
+    }
+
+    std::sort(buses_sorted.begin(), buses_sorted.end(),
+        [](const transport_catalogue::Bus* a, const transport_catalogue::Bus* b) { return a->name < b->name; });
+
+    return buses_sorted; 
+}
+
+std::vector<transport_catalogue::StopPtr> RequestHandler::GetAllStopsSorted() const { 
+
+    std::vector<transport_catalogue::StopPtr> stops_sorted;
+    stops_sorted.reserve(db_.GetAllStops().size());
+
+    for (const auto& stop : db_.GetAllStops()) {
+        stops_sorted.push_back(&stop);
+    }
+
+    std::sort(stops_sorted.begin(), stops_sorted.end(),
+        [](const transport_catalogue::Stop* a, const transport_catalogue::Stop* b) { return a->name < b->name; });
+
+    return stops_sorted; 
+} 

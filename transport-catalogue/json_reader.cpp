@@ -88,7 +88,6 @@ void LoadBaseRequests(const json::Document& doc, transport_catalogue::TransportC
             LoadBus(dict, catalogue);
         }
     }
-    catalogue.Sorting();
 }
 
 json::Node ProcessBusRequest(const json::Dict& request, const RequestHandler& handler) {

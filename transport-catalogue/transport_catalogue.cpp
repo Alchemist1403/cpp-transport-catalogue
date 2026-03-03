@@ -94,21 +94,4 @@ int TransportCatalogue::GetDistance(StopPtr from, StopPtr to) const {
     return 0;
 }
 
-// Добавил новый метод для сортировки по алфавиту всех остановок и автобусов
-void TransportCatalogue::Sorting() {
-    buses_sorted_.reserve(bus_pool_.size());
-    for (const auto& bus : bus_pool_) {
-        buses_sorted_.push_back(&bus);
-    }
-    std::sort(buses_sorted_.begin(), buses_sorted_.end(),
-        [](const Bus* a, const Bus* b) { return a->name < b->name; });
-    
-    stops_sorted_.reserve(stop_pool_.size());
-    for (const auto& stop : stop_pool_) {
-        stops_sorted_.push_back(&stop);
-    }
-    std::sort(stops_sorted_.begin(), stops_sorted_.end(),
-        [](const Stop* a, const Stop* b) { return a->name < b->name; });
-}
-
 }  // namespace transport_catalogue

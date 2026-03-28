@@ -9,8 +9,9 @@ int main() {
     
     transport_catalogue::TransportCatalogue catalogue;
     json_reader::LoadBaseRequests(doc, catalogue);
-
-    RequestHandler request_handler(catalogue);
+    
+    auto routing_settings = json_reader::LoadRoutingSettings(doc);
+    RequestHandler request_handler(catalogue, routing_settings);
     auto result = json_reader::ProcessStatRequests(doc, request_handler);
     
     json::Print(result, std::cout);

@@ -78,18 +78,18 @@ void TransportCatalogue::SetDistance(StopPtr from, StopPtr to, int meters) {
 }
 
 int TransportCatalogue::GetDistance(StopPtr from, StopPtr to) const {
-    if (from == to) {
-        return 0;
-    }
 
     auto it = distances_.find({from, to});
     if (it != distances_.end()) {
         return it->second;
     }
-
     auto rev_it = distances_.find({to, from});
     if (rev_it != distances_.end()) {
         return rev_it->second;
+    }
+
+    if (from == to) {
+        return 0;
     }
     return 0;
 }

@@ -51,6 +51,6 @@ std::vector<transport_catalogue::StopPtr> RequestHandler::GetAllStopsSorted() co
     return stops_sorted;
 }
 
-transport_router::Route RequestHandler::BuildRoute(const std::string& from_stop, const std::string& to_stop) const {
-    return router_->BuildRoute(from_stop, to_stop);
+transport_router::Route RequestHandler::BuildRoute(std::string_view from_stop, std::string_view to_stop) const {
+    return router_->GetOptimalRoute(from_stop, to_stop);
 }

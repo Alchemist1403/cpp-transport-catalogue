@@ -14,8 +14,7 @@ public:
     const std::unordered_set<transport_catalogue::BusPtr>* GetBusesByStop(std::string_view stop_name) const;
     std::vector<transport_catalogue::BusPtr> GetAllBusesSorted() const;
     std::vector<transport_catalogue::StopPtr> GetAllStopsSorted() const;
-    
-    transport_router::Route BuildRoute(const std::string& from_stop, const std::string& to_stop) const;
+    transport_router::Route BuildRoute(std::string_view from_stop, std::string_view to_stop) const;
     
 private:
     const transport_catalogue::TransportCatalogue& db_;

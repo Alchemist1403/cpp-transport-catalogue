@@ -161,7 +161,7 @@ json::Node ProcessRouteRequest(const json::Dict& request, const RequestHandler& 
     const std::string& to_stop = request.at("to").AsString();
     
     auto route = handler.BuildRoute(from_stop, to_stop);
-    
+        
     if (!route.found) {
         return json::Builder{}
             .StartDict()

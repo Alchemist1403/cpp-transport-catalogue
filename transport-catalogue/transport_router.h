@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 namespace transport_router {
@@ -31,21 +32,28 @@ struct Route {
 
 class TransportRouter {
 public:
-    TransportRouter(const transport_catalogue::TransportCatalogue& catalogue,
-                    const RoutingSettings& settings);
+    TransportRouter(const transport_catalogue::TransportCatalogue& catalogue, const RoutingSettings& settings);
     
-    Route BuildRoute(const std::string& from_stop, const std::string& to_stop) const;
+    Route GetOptimalRoute(std::string_view from_stop, std::string_view to_stop) const;
     
 private:
     using Graph = graph::DirectedWeightedGraph<double>;
     using Router = graph::Router<double>;
     
     void BuildGraph();
+
+    void AddRouteEdge(const std::string& bus_name,
+                                        transport_catalogue::StopPtr stop_from,
+                                        transport_catalogue::StopPtr stop_to,
+                                        int& total_distance,
+                                        graph::VertexId from,
+                                        graph::VertexId to,
+                                        int span_count);
     
     const transport_catalogue::TransportCatalogue& catalogue_;
     RoutingSettings settings_;
-    
-    std::unique_ptr<Graph> graph_;
+
+    Graph graph_;
     std::unique_ptr<Router> router_;
     
     std::unordered_map<std::string, graph::VertexId> stop_name_to_vertex_;

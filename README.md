@@ -48,6 +48,7 @@
 
 ```bash
 ./transport_catalogue < input.json > output.json
+```
 
 ## Архитектурные решения
 
